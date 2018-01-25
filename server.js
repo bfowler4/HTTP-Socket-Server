@@ -1,16 +1,11 @@
 const net = require(`net`);
-let indexFile = require(`./assets/index.js`);
-let hydrogenFile = require(`./assets/hydrogen.js`);
-let heliumFile = require(`./assets/helium.js`);
-let notFoundFile = require(`./assets/404.js`);
-let stylesFile = require(`./assets/styles.js`);
 const files = {
-  [`/`]: indexFile,
-  [`/index.html`]: indexFile,
-  [`/hydrogen.html`]: hydrogenFile,
-  [`/helium.html`]: heliumFile,
-  [`/404.html`]: notFoundFile,
-  [`/css/styles.css`]: stylesFile
+  [`/`]: require(`./assets/index.js`),
+  [`/index.html`]: require(`./assets/index.js`),
+  [`/hydrogen.html`]: require(`./assets/hydrogen.js`),
+  [`/helium.html`]: require(`./assets/helium.js`),
+  [`/404.html`]: require(`./assets/404.js`),
+  [`/css/styles.css`]: require(`./assets/styles.js`)
 };
 const server = net.createServer((client) => {
   console.log(`client connected`);
