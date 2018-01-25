@@ -19,11 +19,18 @@ client.on(`data`, (data) => {
   checkForStatusError();
 
   if (args.headersOnly) {
-    console.log(header);
+    if (args.fileToSaveTo === ``) {
+      console.log(headerToString());
+    } else {
+      saveToFile(headerToString(), args.fileToSaveTo);
+    }
   } else {
-    console.log(data);
+    if (args.fileToSaveTo === ``) {
+      console.log(data);
+    } else {
+      saveToFile(data, args.fileToSaveTo);
+    }
   }
-  client.end();
 });
 
 client.on(`error`, (error) => {
@@ -36,7 +43,6 @@ client.on(`error`, (error) => {
 
 client.on(`end`, () => {
   console.log(`Disconnected from server`);
-  process.exit();
 });
 
 function createHeader(args) {
@@ -56,8 +62,8 @@ function getHeaderFromResponse(data) {
   let headerArray = data.split(`\n\n`)[0].split(`\n`);
   header.statusLine = headerArray[0];
   headerArray.slice(1).forEach((curr) => {
-    let key = curr.split(` `)[0];
-    let value = curr.split(` `)[1];
+    let key = curr.split(`: `)[0];
+    let value = curr.split(`: `).slice(1).join(` `);
     header[key] = value;
   });
 }
@@ -77,10 +83,11 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const results = {
     host: ``,
-    uri: ``, 
+    uri: ``,
     requestType: `GET`,
     headersOnly: false,
-    port: 8080
+    port: 8080,
+    fileToSaveTo: ``
   };
 
   if (args.length >= 1) {
@@ -105,12 +112,23 @@ function parseArgs() {
       results.requestType = `POST`;
     } else if (args.includes(`--put`)) {
       results.requestType = `PUT`;
-    } 
-    
+    }
+
     if (args.includes(`--header`)) {
       results.headersOnly = true;
     }
-    
+
+    if (args.includes(`--save`)) {
+      let path = args[args.indexOf(`--save`) + 1];
+      console.log(path);
+      if (path === undefined) {
+        console.log(`Error: No save path given`);
+        process.exit();
+      } else {
+        results.fileToSaveTo = path;
+      }
+    }
+
     if (args.includes(`--port`)) {
       let newPort = parseInt(args[args.indexOf(`--port`) + 1]);
       if (typeof newPort !== `number` || isNaN(newPort)) {
@@ -134,6 +152,23 @@ function watcher() {
       process.exit();
     }
   }, 5000);
+}
+
+function saveToFile(data, path) {
+  fs.writeFile(path, data, (err) => {
+    if (err) {
+      console.log(err);
+    }
+    console.log(`Saved response to ${path}`);
+    process.exit();
+  });
+}
+
+function headerToString() {
+  return Object.keys(header).reduce((accum, curr) => {
+    accum += `${curr}: ${header[curr]}\n`;
+    return accum;
+  }, ``);
 }
 
 // fs.readFile(`./test.html`, `utf8`, (err, data) => {
