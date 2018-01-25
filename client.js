@@ -3,16 +3,13 @@ const client = new net.Socket();
 client.setEncoding(`utf8`);
 
 client.connect(8080, () => {
-  // console.log(`Connected to server`);
-  // let request = createRequest();
-  // if (request) {
-  //   client.write(request);
-  // } else {
-  //   console.log(`Error: Invalid arguments`);
-  //   client.end();
-  // }
-  console.log(parseArgs());
-  client.end();
+  console.log(`Connected to server`);
+  let args = parseArgs();
+  if (args) {
+    client.write(createRequest(args));
+  } else {
+    client.end();
+  }
 });
 
 client.on(`data`, (data) => {
@@ -24,27 +21,14 @@ client.on(`end`, () => {
   console.log(`Disconnected from server`);
 });
 
-function createRequest() {
-  let args = process.argv.slice(2);
-  if (args.length > 0) {
-    let header = createHeader(args[0]);
-    return header;
-  } else {
-    return false;
-  }
+function createRequest(args) {
+  return createHeader(args);
 }
 
-function createHeader(url) {
-  let uri;
-  if (url.split(`/`).length === 1 || url.split(`/`)[1] === ``) {
-    uri = `/`;
-  } else {
-    uri = `/${url.split(`/`).slice(1).join(`/`)}`;
-  }
-  let requestLine = `GET ${uri} HTTP/1.1`;
-  let host = url.split(`/`)[0];
+function createHeader(args) {
+  let requestLine = `${args.requestType} ${args.uri} HTTP/1.1`;
   let date = new Date().toUTCString();
-  return `${requestLine}\nHost: ${host}\nDate: ${date}\nUser-Agent: Brandon\n\n`;
+  return `${requestLine}\nHost: ${args.host}\nDate: ${date}\nUser-Agent: Brandon\n\n`;
 }
 
 function parseArgs() {
