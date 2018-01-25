@@ -1,19 +1,30 @@
 const net = require(`net`);
 const client = new net.Socket();
+let header = {};
 client.setEncoding(`utf8`);
+let args = parseArgs();
+if (!args) {
+  process.exit();
+}
 
 client.connect(8080, () => {
   console.log(`Connected to server`);
-  let args = parseArgs();
-  if (args) {
-    client.write(createRequest(args));
-  } else {
-    client.end();
-  }
+  client.write(createRequest(args));
 });
 
 client.on(`data`, (data) => {
-  console.log(data);
+  let headerArray = data.split(`\n\n`)[0].split(`\n`);
+  header.statusLine = headerArray[0];
+  headerArray.slice(1).forEach((curr) => {
+    let key = curr.split(` `)[0];
+    let value = curr.split(` `)[1];
+    header[key] = value;
+  });
+  if (args.headersOnly) {
+    console.log(header);
+  } else {
+    console.log(data);
+  }
   client.end();
 });
 
@@ -22,7 +33,10 @@ client.on(`end`, () => {
 });
 
 function createRequest(args) {
-  return createHeader(args);
+  let header = createHeader(args);
+  let body = ``;
+
+  return `${header}${body}`;
 }
 
 function createHeader(args) {
@@ -65,7 +79,7 @@ function parseArgs() {
     
     if (args.includes(`--port`)) {
       let port = parseInt(args[args.indexOf(`--port`) + 1]);
-      if (typeof port !== `number` || port < 1025) {
+      if (typeof port !== `number` || isNaN(port) || port < 1025) {
         console.log(`Error: Invalid port number or no port number was specified with --port flag`);
         return false;
       } else {
