@@ -46,7 +46,7 @@ function doRequest(data, client) {
     client.write(message);
   } else if (requestType === `PUT` || requestType === `POST`) {
     const created = !files.hasOwnProperty(path);
-    body = data.split(`\r\n\r\n`)[1];
+    body = data.split(`\r\n\r\n`).slice(1).join(`\r\n\r\n`);
     statusLine = created ? `HTTP/1.1 201 Created` : `HTTP/1.1 200 OK`;
     files[path] = body;
     client.write(`${statusLine}\n${responseHeaders}\n\n`);

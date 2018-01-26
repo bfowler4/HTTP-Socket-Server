@@ -1,10 +1,12 @@
 const net = require(`net`);
 const fs = require(`fs`);
+const nodePath = require(`path`);
 const client = new net.Socket();
 watcher();
 let header = {};
 client.setEncoding(`utf8`);
 let args = parseArgs();
+console.log(args);
 let connected = false;
 
 client.connect({ host: args.host, port: args.port }, () => {
@@ -48,12 +50,15 @@ client.on(`end`, () => {
 function createHeader(args) {
   let requestLine = `${args.requestType} ${args.uri} HTTP/1.1`;
   let date = new Date().toUTCString();
-  return `${requestLine}\nHost: ${args.host}\nDate: ${date}\nUser-Agent: Brandon\n\n`;
+  return `${requestLine}\nHost: ${args.host}\nDate: ${date}\nUser-Agent: Brandon\r\n\r\n`;
 }
 
 function createRequest(args) {
   let header = createHeader(args);
   let body = ``;
+  if (args.requestType === `POST` || args.requestType === `PUT`) {
+    body = readDataFromFileSynchronously(args.fileToReadFrom);
+  }
 
   return `${header}${body}`;
 }
@@ -87,7 +92,8 @@ function parseArgs() {
     requestType: `GET`,
     headersOnly: false,
     port: 8080,
-    fileToSaveTo: ``
+    fileToSaveTo: ``,
+    fileToReadFrom: ``
   };
 
   if (args.length >= 1) {
@@ -108,10 +114,22 @@ function parseArgs() {
     if (args.includes(`--post`) && args.includes(`--put`)) {
       console.log(`Error: Both --post and --put were included. Choose 1.`);
       process.exit();
-    } else if (args.includes(`--post`)) {
-      results.requestType = `POST`;
-    } else if (args.includes(`--put`)) {
-      results.requestType = `PUT`;
+    } else if (args.includes(`--post`) || args.includes(`--put`)) {
+      let flag = ``;
+      if (args.includes(`--post`)) {
+        results.requestType = `POST`;
+        flag = `--post`;
+      } else {
+        results.requestType = `PUT`;
+        flag = `--put`;
+      }
+      let path = args[args.indexOf(flag) + 1];
+      if (path === undefined) {
+        console.log(`Error: No file path given with ${flag} flag`);
+        process.exit();
+      } else {
+        results.fileToReadFrom = path;
+      }
     }
 
     if (args.includes(`--header`)) {
@@ -164,13 +182,13 @@ function saveToFile(data, path) {
   });
 }
 
+function readDataFromFileSynchronously(path) {
+  return fs.readFileSync(path, `utf8`);
+}
+
 function headerToString() {
   return Object.keys(header).reduce((accum, curr) => {
     accum += `${curr}: ${header[curr]}\n`;
     return accum;
   }, ``);
 }
-
-// fs.readFile(`./test.html`, `utf8`, (err, data) => {
-//   console.log(data);
-// });
