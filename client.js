@@ -6,7 +6,6 @@ watcher();
 let header = {};
 client.setEncoding(`utf8`);
 let args = parseArgs();
-console.log(args);
 let connected = false;
 
 client.connect({ host: args.host, port: args.port }, () => {
@@ -65,6 +64,10 @@ function createRequest(args) {
 
 function getHeaderFromResponse(data) {
   let headerArray = data.split(`\n\n`)[0].split(`\n`);
+  if (headerArray.length < 1) {
+    console.log(`Error: Server is not returning a valid response.`);
+    process.exit();
+  }
   header.statusLine = headerArray[0];
   headerArray.slice(1).forEach((curr) => {
     let key = curr.split(`: `)[0];
@@ -76,10 +79,10 @@ function getHeaderFromResponse(data) {
 function checkForStatusError() {
   let statusCode = parseInt(header.statusLine.split(` `)[1]);
   if (statusCode >= 400 && statusCode < 500) {
-    console.log(`Error: Some kind of 400+ code: ${header.statusLine}`);
+    console.log(`Error: Some kind of 400+ code client error: ${header.statusLine}`);
     client.end();
   } else if (statusCode >= 500 && statusCode <= 600) {
-    console.log(`Error: Some kind of 500+ code: ${header.statusLine}`);
+    console.log(`Error: Some kind of 500+ code server error: ${header.statusLine}`);
     cliet.end();
   }
 }
@@ -176,14 +179,24 @@ function saveToFile(data, path) {
   fs.writeFile(path, data, (err) => {
     if (err) {
       console.log(err);
+    } else {
+      console.log(`Saved response to ${path}`);
+      process.exit();
     }
-    console.log(`Saved response to ${path}`);
-    process.exit();
   });
 }
 
 function readDataFromFileSynchronously(path) {
-  return fs.readFileSync(path, `utf8`);
+  try {
+    return fs.readFileSync(path, `utf8`);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      console.log(`Error: File not found`);
+    } else {
+      console.log(err);
+      process.exit();
+    }
+  }
 }
 
 function headerToString() {
